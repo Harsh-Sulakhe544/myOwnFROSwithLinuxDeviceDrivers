@@ -1,0 +1,1098 @@
+
+IT HAS MANY PROJECTS : 
+
+'''
+first we will start with bootloader and kernel : 
+"https://github.com/FRosner/FrOS/tree/minimal-c-kernel"
+"https://dev.to/frosnerd/writing-my-own-boot-loader-3mld" ==> check links inside this also 
+"https://github.com/cfenollosa/os-tutorial" ==> this is the main thing ==> EVERYTHING OUR ABOUT KERNEL WITH EACH OIF THE TUTORIAL 
+"https://www.cs.bham.ac.uk/~exr/lectures/opsys/10_11/lectures/os-dev.pdf" ==> BOOK FOR ALL 
+
+"https://www.techtarget.com/whatis/definition/BIOS-basic-input-output-system"  ==> THINGS FOR BIOS 
+"https://stackoverflow.com/questions/1125025/what-is-the-role-of-magic-number-in-boot-loading-in-linux" ==> what is that 0xa55 magic number ==> read everything from each links ==> to identify type like little endian or big endian  
+
+"https://www.lkouniv.ac.in/site/writereaddata/siteContent/202004282031263935priyanka_s_engg_Register_Organization_of_8086.pdf" 
+==> what is cx and ch and cl general data registers (c = code , x = complete register of 16 bit set )  
+
+what is that cylinder/track now in ch register ? 
+refer == > "https://www.cs.uic.edu/~jbell/CourseNotes/OperatingSystems/10_MassStorage.html" && 
+"https://en.wikipedia.org/wiki/Cylinder-head-sector" ==> clear explanations 
+
+mbr ==> master boot record  , mbr.asm :
+
+Explanation of Key Components
+
+    [bits 16] and [bits 32]: These directives specify the operand size for the code that follows. The bootloader starts in 16-bit real mode, which is necessary for initial hardware interaction. After loading the kernel, it switches to 32-bit protected mode, allowing for more advanced features and memory management.
+
+    [org 0x7c00]: This directive sets the origin of the code to the memory address 0x7C00. When the BIOS loads the boot sector from the disk, it places it at this address. This is a special address because it is the standard location where the BIOS expects to find the bootloader code.
+
+    BOOT_DRIVE: This variable is used to store the boot drive number, which is set by the BIOS. The boot drive is essential for determining from which disk the bootloader should load the operating system.
+
+    Kernel Loading: The load_kernel function is responsible for reading the kernel from the disk into memory. It uses the disk_load function (presumably defined in disk.asm) to perform the actual reading.
+
+    Padding and Magic Number: The padding ensures that the boot sector is exactly 512 bytes long, which is a requirement for bootloaders. The magic number 0xAA55 at the end of the boot sector is a signature that the BIOS checks to verify that the boot sector is valid.
+
+
+
+disk.asm : 
+
+Detailed Explanations
+
+    pusha Instruction:
+        The pusha instruction pushes all general-purpose registers (AX, BX, CX, DX, SI, DI, BP, and SP) onto the stack. This is crucial for preserving the state of the registers before executing the disk read operation, ensuring that the original values can be restored later.
+
+    Read Mode:
+        The mov ah, 0x02 instruction sets the AH register to 0x02, which tells the BIOS that we want to read sectors from the disk. This is part of the BIOS interrupt service for disk operations, specifically for reading data.
+
+    Cylinder 0 and Head 0:
+        In the context of disk drives, "cylinder" and "head" refer to the physical structure of the disk.
+            Cylinder 0: This is the first track of the disk. Disks are organized in concentric circles, and each circle is referred to as a cylinder.
+            Head 0: This refers to the first read/write head of the disk. In a multi-platter disk, each platter has its own head, and head 0 is typically the first one used for reading data.
+
+    es:bx:
+        The es:bx combination is used to specify a memory address where the data read from the disk will be stored.
+            ES: This is the Extra Segment register, which points to a segment in memory.
+            BX: This is a general-purpose register that, when combined with ES, forms a complete address in memory. The data read from the disk will be loaded into this memory location.
+
+
+how cylinders work : 
+details : 
+Very Detailed Answer: Understanding Disk Organization and Cylinder Representation
+Question Summary
+
+The question seeks a clear and detailed diagrammatic representation of a disk's organization, specifically focusing on Cylinder 0, which is the first track of the disk. Disks are structured in concentric circles, and each circle is referred to as a cylinder.
+Answer
+
+To understand the concept of cylinders in disk organization, we must first visualize how data is stored on a disk. A disk is essentially a circular medium divided into several concentric circles, which are referred to as cylinders. Each cylinder represents a track where data can be read or written.
+Diagram Representation
+
+Below is a textual representation of how Cylinder 0 would appear on a disk. While I cannot create graphical images directly, I will describe how you can visualize it:
+
++---------------------+
+|                     |
+|       Cylinder 0   |  <- This is the first track of the disk
+|                     |
++---------------------+
+
+Detailed Explanation
+
+    Disk Structure:
+        A disk is composed of multiple platters, each platter having two surfaces. Each surface is divided into concentric circles, which are the cylinders.
+        The outermost circle is Cylinder 0, which is the first track of the disk. As you move inward, you encounter Cylinder 1, Cylinder 2, and so forth.
+
+    Cylinders and Tracks:
+        Each cylinder can be thought of as a track that holds a specific amount of data. The data is organized in sectors, which are the smallest units of storage on the disk.
+        For example, if a disk has 100 cylinders, Cylinder 0 will be the outermost track, and it will contain the first set of sectors.
+
+    Data Access:
+        When a read/write operation is performed, the disk's read/write head moves to the appropriate cylinder and then to the specific sector within that cylinder to access the data.
+        This organization allows for efficient data retrieval, as the head can quickly move to the desired track without having to search through the entire disk.
+
+Assembly Language Context
+
+In the context of assembly language programming, understanding how data is organized on a disk is crucial for low-level data manipulation. For instance, when writing a program that interacts with disk storage, you may need to specify the cylinder and sector to read or write data.
+
+Here is a simple assembly code snippet that demonstrates how you might specify a cylinder and sector for a read operation:
+
+language-assembly
+
+; Example Assembly Code for Disk Read Operation
+MOV AX, 0x0201      ; BIOS interrupt for disk read
+MOV BX, 0x0000      ; Drive number (0 for first hard disk)
+MOV CX, 0x0000      ; Cylinder number (0 for Cylinder 0)
+MOV DX, 0x0000      ; Sector number (first sector)
+INT 0x13            ; Call BIOS interrupt
+
+Conclusion
+
+In summary, Cylinder 0 is the first track of a disk, representing the outermost concentric circle where data is stored. Understanding this structure is essential for both theoretical knowledge and practical applications in assembly language programming. By visualizing the disk's organization and recognizing the significance of cylinders, one can better appreciate how data is managed and accessed at a low level.
+
+
+why eax forms by the ah and al : "https://stackoverflow.com/questions/15191178/how-do-ax-ah-al-map-onto-eax" ==> BEST EXPLANATION 
+
+HOW WE SHIFT FROM 16 BIT TO 32BIT AND WHAT IS GDT (KIND OF TABLE) BY INTEL : 
+"https://en.wikipedia.org/wiki/Global_Descriptor_Table"
+"https://en.wikipedia.org/wiki/Segment_descriptor" ==> MAIN REFERENCE HOW THIS DATA-STRUCTURE  WORKS INTERNALLY  
+
+OUR IMAGE FORMAT OF DISK STRUCTURE : 
+"https://media.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fi%2Fcuhqckaray7l80qb7ywm.png"
+
+HOW GDT WORKS : 
+The provided assembly code defines a Global Descriptor Table (GDT), which is crucial for memory management in x86 architecture. The GDT contains segment descriptors that define the characteristics of various memory segments, such as code and data segments. Let's break down the code and add necessary comments for clarity.
+==> 
+"
+Explanation of CODE_SEG and DATA_SEG
+
+    CODE_SEG equ gdt_code - gdt_start: This line calculates the offset of the code segment descriptor from the start of the GDT. It allows the CPU to locate the code segment descriptor when switching to the code segment.
+    DATA_SEG equ gdt_data - gdt_start: Similarly, this line calculates the offset of the data segment descriptor from the start of the GDT.
+
+Understanding DQ, DW, and DB
+
+    DQ (Define Quadword): This directive reserves 8 bytes (64 bits) of memory. It is typically used for defining large data types or pointers.
+    DW (Define Word): This directive reserves 2 bytes (16 bits) of memory. It is commonly used for defining integers or short data types.
+    DB (Define Byte): This directive reserves 1 byte (8 bits) of memory. It is used for defining single-byte data types, such as characters.
+
+Structural Format
+
+    DQ: dq value (e.g., dq 0x0)
+    DW: dw value (e.g., dw 0xffff)
+    DB: db value (e.g., db 10011010b)
+
+In summary, the GDT is a critical component in x86 architecture that defines the properties of memory segments. The CODE_SEG and DATA_SEG offsets are essential for the CPU to access the correct segment descriptors, while the DQ, DW, and DB directives serve to allocate memory for different data types effectively. Understanding these concepts is fundamental for anyone working with assembly language and low-level programming.
+"
+
+" switch to 32 bit asm : 
+
+refer : "https://stackoverflow.com/questions/15020621/what-is-between-esp-and-ebp"  ==> actaully windows explanation 
+"https://www.varonis.com/blog/stack-memory-3" ==> BEST EXPLANATION 
+
+
+Explanation of Key Components
+
+    Segment Registers (ss, gs, fs, es):
+        ss (Stack Segment): This register points to the segment that contains the stack. It is crucial for managing function calls and local variables.
+        gs, fs, es (General Purpose Segment Registers): These registers are used for additional data segments. They allow for more flexible memory management and can be used for thread-local storage or other purposes.
+        In this code, all segment registers are initialized to the same data segment (DATA_SEG). This is a common practice to ensure that all segments point to the same base address after switching to protected mode.
+
+    Moving Values into AX:
+        The mov ax, DATA_SEG instruction loads the data segment selector into the AX register. This is a preparatory step before moving the value into the segment registers. The AX register is often used as a temporary storage location for values that will be moved to other registers.
+
+    Purpose of EBP and ESP:
+        EBP (Base Pointer): This register is typically used to point to the base of the current stack frame. It helps in accessing function parameters and local variables.
+        ESP (Stack Pointer): This register points to the top of the stack. It is crucial for managing the stack's growth and shrinkage during function calls and returns.
+        In this code, mov ebp, 0x90000 sets the base pointer to a specific address, establishing a known location for the stack. The subsequent mov esp, ebp initializes the stack pointer to the same address, effectively setting up the stack for use.
+
+
+connecting the c file with asm file : 
+Very Detailed Answer: Explanation of kernel.asm and kernel.c
+Question Summary
+
+The task is to explain the provided assembly code in kernel.asm and the C code in kernel.c, while also adding the required headers and comment lines for clarity.
+Answer
+Explanation of kernel.asm
+
+language-assembly
+
+; kernel.asm
+; This is a simple bootloader that calls the main function defined in kernel.c
+; It is written for a 32-bit architecture.
+
+[bits 32]          ; Specify that we are working in 32-bit mode
+[extern main]      ; Declare the external function 'main' which is defined in kernel.c
+
+; Entry point of the program
+call main          ; Call the main function to execute the C code
+jmp $              ; Infinite loop to prevent falling through to undefined code
+
+Breakdown of the Assembly Code:
+
+    [bits 32]: This directive tells the assembler that the code is intended to run in a 32-bit environment. This is crucial for ensuring that the instructions and data types are correctly interpreted.
+
+    [extern main]: This line declares that there is an external function named main. This function is defined in another file, specifically in kernel.c. The assembler needs to know about this function to link it correctly during the linking phase.
+
+    call main: This instruction calls the main function. When the CPU executes this line, it will jump to the address of the main function defined in kernel.c. The return address is pushed onto the stack, allowing the program to return to this point after main completes.
+
+    jmp $: This instruction creates an infinite loop. The $ symbol represents the current address, so jmp $ will keep the CPU executing this instruction indefinitely. This is a common practice in bootloaders to prevent the CPU from executing any unintended code after the main function has finished.
+
+Explanation of kernel.c
+
+language-c
+
+// kernel.c
+// This file contains the main function that writes a character to the video memory
+// It is intended to be executed in a low-level environment, such as a bootloader.
+
+void main() {
+    char* video_memory = (char*) 0xb8000; // Pointer to the start of video memory
+    *video_memory = 'X';                   // Write the character 'X' to the video memory
+}
+
+Breakdown of the C Code:
+
+    char video_memory = (char) 0xb8000;**: This line declares a pointer named video_memory and initializes it to the memory address 0xb8000. This address is significant because it is the starting point of the text mode video memory in x86 architecture. In this memory area, each character is represented by two bytes: one for the character itself and one for its attribute (color).
+
+    *video_memory = 'X';: This line dereferences the video_memory pointer and assigns the character 'X' to that memory location. This action effectively writes the character 'X' to the screen at the top-left corner of the display in text mode. The character will be displayed in the default color, which is typically white on a black background.
+
+Conclusion
+
+In summary, the provided assembly and C code work together to create a simple bootloader that initializes a 32-bit environment and writes a character to the screen. The assembly code sets up the environment and calls the C function, while the C code directly manipulates the video memory to display output. This example illustrates the interaction between low-level assembly language and higher-level C programming, showcasing how they can be used in systems programming.
+"
+
+MAKEFILE ERROR ==> Makefile or follow below steps : 
+Very Detailed Answer: Resolving "No Makefile Found" Error
+Question Summary
+
+When attempting to run the make command, an error indicating "no makefile found" is encountered, despite the presence of a Makefile in the same directory. This response will detail the steps to resolve this issue and provide insights into the Makefile structure.
+Answer
+
+The "no makefile found" error can be frustrating, especially when you are certain that a Makefile exists in the directory. Let's explore the potential causes of this issue and how to resolve it step by step.
+Step 1: Verify the Makefile Name
+
+The first thing to check is the name of the Makefile. The default names that make looks for are Makefile and makefile. Ensure that your file is named exactly as Makefile (with a capital 'M') or makefile (all lowercase). You can check this by running the following command in your terminal:
+
+language-bash
+
+ls -l
+
+This command will list all files in the current directory. Look for Makefile or makefile in the output.
+Step 2: Check File Permissions
+
+If the Makefile is correctly named, the next step is to check the file permissions. The make command needs to have read access to the Makefile. You can check the permissions with:
+
+language-bash
+
+ls -l Makefile
+
+The output will show the permissions. Ensure that the file has read permissions for the user running the make command. If it does not, you can change the permissions using:
+
+language-bash
+
+chmod +r Makefile
+
+Step 3: Ensure You Are in the Correct Directory
+
+Another common issue is running the make command from a different directory than where the Makefile is located. Use the pwd command to print the current working directory:
+
+language-bash
+
+pwd
+
+Make sure that this directory matches the one where your Makefile is located. If not, navigate to the correct directory using the cd command:
+
+language-bash
+
+cd /path/to/your/directory
+
+Step 4: Check for Hidden Characters
+
+Sometimes, hidden characters or spaces can cause issues. To ensure there are no hidden characters in the filename, you can use the following command:
+
+language-bash
+
+ls -b
+
+This will display the filenames with any special characters escaped. If you see any unexpected characters, rename the file appropriately.
+Step 5: Running Make with Explicit Makefile
+
+If you still encounter issues, you can explicitly tell make which file to use by using the -f option:
+
+language-bash
+
+make -f Makefile
+
+This command forces make to use the specified file, bypassing the default search.
+Step 6: Review the Makefile Content
+
+Lastly, ensure that the content of your Makefile is correct. The provided Makefile appears to be well-structured, but it’s always good to double-check for syntax errors or misplaced tabs/spaces. Here’s a brief overview of the key components:
+
+language-makefile
+
+# $@ = target file
+# $< = first dependency
+# $^ = all dependencies
+
+all: run
+
+kernel.bin: kernel-entry.o kernel.o
+    ld -m elf_i386 -o $@ -Ttext 0x1000 $^ --oformat binary
+
+kernel-entry.o: kernel-entry.asm
+    nasm $< -f elf -o $@
+
+kernel.o: kernel.c
+    gcc -m32 -ffreestanding -c $< -o $@
+
+mbr.bin: mbr.asm
+    nasm $< -f bin -o $@
+
+os-image.bin: mbr.bin kernel.bin
+    cat $^ > $@
+
+run: os-image.bin
+    qemu-system-i386 -fda $<
+
+clean:
+    $(RM) *.bin *.o *.dis
+
+Conclusion
+
+By following these steps, you should be able to resolve the "no makefile found" error. Always ensure that the Makefile is correctly named, has the right permissions, and is located in the directory from which you are running the make command. If issues persist, consider checking for hidden characters or explicitly specifying the Makefile. With these adjustments, you should be able to compile, assemble, link, and load your image into QEMU successfully. Happy coding!
+
+
+USEFUL COMMANDS TO RENAME A FILE IN LINUX : 
+"https://www.freecodecamp.org/news/rename-file-linux-bash-command/"
+
+WE ARE CROSS COMPILING : "https://wiki.osdev.org/GCC_Cross-Compiler"
+'Cross-compiled apps are software designed on one platform but meant to run on another. They enable developers to create software for different platforms without needing separate development setups for each. This is useful in embedded systems and mobile apps.'
+
+OR 
+
+harsh@harsh-P6-2010IX:~/Desktop/myOwnFrOSWithDeviceDrivers/boot$ export CC=x86_64-elf-gcc
+harsh@harsh-P6-2010IX:~/Desktop/myOwnFrOSWithDeviceDrivers/boot$ export LD=x86_64-elf-ld
+harsh@harsh-P6-2010IX:~/Desktop/myOwnFrOSWithDeviceDrivers/boot$ export NASM=nasm
+
+'''
+
+
+'''
+drivers : 
+
+REFER  : "https://gcc.gnu.org/onlinedocs/gcc/Using-Assembly-Language-with-C.html#Using-Assembly-Language-with-C", 
+"https://dev.to/frosnerd/writing-my-own-vga-driver-22nn" , 
+"https://wiki.osdev.org/VGA_Hardware#Port_0x3C4.2C_0x3CE.2C_0x3D4" ==> BEST FOR OS-DEV VGA DRIVER , BEST FOR FUTURE 
+
+
+Very Detailed Answer: Understanding %%dx, %%al, and __asm__ in Inline Assembly
+Question Summary
+
+The question seeks to clarify the roles of %%dx and %%al in the provided C code, as well as to explain the functionality of the __asm__ keyword. Additionally, an example and diagram are requested to illustrate these concepts.
+Answer
+
+In the realm of C programming, particularly when dealing with low-level operations such as direct hardware access, inline assembly becomes a powerful tool. The code snippet provided demonstrates how to read from and write to hardware ports using inline assembly in C. Let's break down the components of the code, focusing on %%dx, %%al, and the __asm__ keyword.
+Breakdown of the Code
+
+language-c
+
+unsigned char port_byte_in(unsigned short port) {
+    unsigned char result;
+    __asm__("in %%dx, %%al" : "=a" (result) : "d" (port));
+    return result;
+}
+
+void port_byte_out(unsigned short port, unsigned char data) {
+    __asm__("out %%al, %%dx" : : "a" (data), "d" (port));
+}
+
+Explanation of %%dx and %%al
+
+    Registers in x86 Architecture:
+        %%dx: This is the data register (DX) used to specify the port number from which data is to be read or to which data is to be written. In the context of I/O operations, the DX register holds the address of the I/O port.
+        %%al: This is the lower byte of the accumulator register (EAX). It is used to store the data that is read from or written to the I/O port. The AL register is particularly useful for byte-sized operations.
+
+    Inline Assembly Syntax:
+        The __asm__ keyword allows the inclusion of assembly language instructions directly within C code. The syntax used here is specific to GCC (GNU Compiler Collection) and follows the format:
+
+        language-c
+
+        __asm__(assembly_code : output_operands : input_operands);
+
+        In the port_byte_in function, the instruction in %%dx, %%al reads a byte from the port specified in the DX register and stores it in the AL register. The output operand =a indicates that the result will be stored in the variable result, while the input operand d specifies that the port number will be taken from the port parameter.
+
+    Functionality:
+        The port_byte_in function reads a byte from a specified I/O port and returns it. Conversely, the port_byte_out function writes a byte to a specified I/O port. The instruction out %%al, %%dx sends the byte in the AL register to the port specified in the DX register.
+
+Example and Diagram
+
+To illustrate the functionality of these functions, consider the following example:
+
+    Example: Assume we want to read a byte from port 0x60 (often used for keyboard input) and write a byte 0xFF to port 0x3F8 (commonly used for serial communication).
+
+language-c
+
+unsigned char data = port_byte_in(0x60); // Read from port 0x60
+port_byte_out(0x3F8, 0xFF); // Write 0xFF to port 0x3F8
+
+Diagram
+
+language-plaintext
+
++-------------------+          +-------------------+
+|                   |          |                   |
+|   I/O Port 0x60   | <------> |   I/O Port 0x3F8  |
+|                   |          |                   |
++-------------------+          +-------------------+
+         |                               |
+         |                               |
+         |                               |
+         |                               |
+         |                               |
+         v                               v
++-------------------+          +-------------------+
+|                   |          |                   |
+|   Read Data (AL)  |          |   Write Data (AL) |
+|                   |          |                   |
++-------------------+          +-------------------+
+
+Conclusion
+
+In summary, the %%dx and %%al registers play crucial roles in the context of I/O operations in x86 assembly language. The __asm__ keyword allows for the integration of assembly instructions within C code, enabling direct hardware manipulation. Understanding these components is essential for low-level programming, particularly in systems programming and embedded systems. By utilizing these functions, developers can efficiently interact with hardware ports, facilitating communication between software and hardware components.
+
+
+"For our port_byte_in function we map the C variable port into the dx register, execute in al, dx, and then store the value of the al register into the C variable result. The port_byte_out function looks similar. It executes out dx, al, mapping the port to dx and the data to al. As we are only writing data there are no output parameters and the function has no return value."
+
+"Printing Text and Moving the Cursor" 
+
+In C a string is a 0-byte terminated sequence of ASCII encoded bytes. To print a string on the screen we need to:
+
+    Get the current cursor offset.
+    Loop through the bytes of the string, writing them to the video memory, incrementing the offset.
+    Update the cursor position.
+
+
+CURSOR RELATED THINGS : 
+"
+Very Detailed Answer: Understanding Cursor Manipulation in VGA
+Question Summary
+
+The provided C code consists of two functions, set_cursor and get_cursor, which are responsible for manipulating the cursor position on a VGA display. This response will explain the code in detail, provide an example of its usage, and include a diagram illustrating the connection with hardware.
+Answer
+Overview of the Code
+
+The code snippet is designed to interact with the VGA (Video Graphics Array) hardware to set and retrieve the cursor position on the screen. The VGA controller uses specific registers to manage the cursor's position, and the functions utilize low-level I/O operations to communicate with these registers.
+Function Breakdown
+1. set_cursor(int offset)
+
+This function sets the cursor position based on the provided offset. The offset is divided by 2 because the VGA cursor operates in terms of character cells, and each cell is typically 2 bytes wide (one for the character and one for its attribute).
+
+Code Explanation:
+
+language-c
+
+void set_cursor(int offset) {
+    offset /= 2;  // Convert byte offset to character cell offset
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);  // Select high byte register
+    port_byte_out(VGA_DATA_REGISTER, (unsigned char) (offset >> 8));  // Send high byte
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);  // Select low byte register
+    port_byte_out(VGA_DATA_REGISTER, (unsigned char) (offset & 0xff));  // Send low byte
+}
+
+    Step 1: The offset is divided by 2 to convert the byte offset to a character cell offset.
+    Step 2: The function writes to the VGA control register to select the high byte of the cursor position.
+    Step 3: It sends the high byte of the offset to the VGA data register.
+    Step 4: The function selects the low byte of the cursor position.
+    Step 5: Finally, it sends the low byte of the offset to the VGA data register.
+
+2. get_cursor()
+
+This function retrieves the current cursor position from the VGA hardware.
+
+Code Explanation:
+
+language-c
+
+int get_cursor() {
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_HIGH);  // Select high byte register
+    int offset = port_byte_in(VGA_DATA_REGISTER) << 8;  // Read high byte and shift left
+    port_byte_out(VGA_CTRL_REGISTER, VGA_OFFSET_LOW);  // Select low byte register
+    offset += port_byte_in(VGA_DATA_REGISTER);  // Read low byte and add to offset
+    return offset * 2;  // Convert character cell offset back to byte offset
+}
+
+    Step 1: The function writes to the VGA control register to select the high byte of the cursor position.
+    Step 2: It reads the high byte from the VGA data register and shifts it left by 8 bits to prepare for the full offset.
+    Step 3: The function selects the low byte of the cursor position.
+    Step 4: It reads the low byte and adds it to the previously obtained high byte.
+    Step 5: Finally, it multiplies the result by 2 to convert the character cell offset back to a byte offset.
+
+Example Usage
+
+To illustrate how these functions can be used, consider the following example:
+
+language-c
+
+#include <stdio.h>
+
+#define VGA_CTRL_REGISTER 0x3D4
+#define VGA_DATA_REGISTER 0x3D5
+#define VGA_OFFSET_HIGH 0x0E
+#define VGA_OFFSET_LOW 0x0F
+
+void port_byte_out(unsigned short port, unsigned char value) {
+    // Implementation for writing a byte to a port
+}
+
+unsigned char port_byte_in(unsigned short port) {
+    // Implementation for reading a byte from a port
+}
+
+int main() {
+    // Set cursor to the 100th character cell
+    set_cursor(200);  // 200 bytes offset
+
+    // Get the current cursor position
+    int cursor_position = get_cursor();
+    printf("Current Cursor Position: %d\n", cursor_position);  // Should print 200
+    return 0;
+}
+
+Diagram of Hardware Linking
+
+Below is a simplified diagram illustrating how the functions interact with the VGA hardware:
+
++-------------------+
+|   CPU/Program     |
+|                   |
+|   +-----------+   |
+|   | set_cursor|   |
+|   +-----------+   |
+|         |         |
+|         v         |
+|   +-----------+   |
+|   | VGA_CTRL  |   |
+|   +-----------+   |
+|         |         |
+|         v         |
+|   +-----------+   |
+|   | VGA_DATA  |   |
+|   +-----------+   |
+|                   |
+|   +-----------+   |
+|   | get_cursor|   |
+|   +-----------+   |
+|         |         |
+|         v         |
+|   +-----------+   |
+|   | VGA_CTRL  |   |
+|   +-----------+   |
+|         |         |
+|         v         |
+|   +-----------+   |
+|   | VGA_DATA  |   |
+|   +-----------+   |
++-------------------+
+
+"
+'''
+
+
+
+ERROR RESOLVING : 
+"Very Detailed Answer: Running Display Code on Linux OS
+Question Summary
+
+The task is to ensure that the provided C code, which is designed for low-level video memory manipulation, runs properly on a Linux operating system. This involves addressing two main aspects: setting up the environment correctly and ensuring that the code adheres to the Linux operating system's constraints and capabilities.
+Answer
+
+To run the provided display.c code on a Linux OS, we need to consider several factors, including the environment setup, the nature of the code, and the specific requirements of Linux. Below, I will outline the steps necessary to achieve this, along with explanations and code snippets where applicable.
+1. Understanding the Code
+
+The provided code is designed to manipulate video memory directly, which is typically not allowed in user-space applications on modern operating systems like Linux. This code appears to be intended for a bare-metal or kernel-level environment, where direct access to hardware is permissible. Therefore, we need to adapt our approach to run this code in a Linux environment.
+2. Setting Up the Environment
+
+To run low-level code like this on Linux, you can use a virtual machine or an emulator such as QEMU. This allows you to simulate a hardware environment where you can execute your code as if it were running on actual hardware.
+Step 2.1: Install QEMU
+
+You can install QEMU on your Linux system using the package manager. For example, on Ubuntu, you can run:
+
+language-bash
+
+sudo apt-get update
+sudo apt-get install qemu
+
+Step 2.2: Create a Bootable Image
+
+Since the code interacts with hardware directly, you will need to compile it into a bootable image. You can use a simple Makefile to compile your code. Here’s an example:
+
+language-makefile
+
+# Makefile
+CC = gcc
+CFLAGS = -m32 -ffreestanding -c
+LDFLAGS = -m32 -T linker.ld -o kernel.bin
+
+all: kernel.bin
+
+kernel.bin: display.o
+	$(CC) $(LDFLAGS) display.o
+
+display.o: display.c
+	$(CC) $(CFLAGS) display.c
+
+clean:
+	rm -f *.o kernel.bin
+
+You will also need a linker script (linker.ld) to define the memory layout. Here’s a simple example:
+
+language-ld
+
+/* linker.ld */
+OUTPUT_FORMAT("binary")
+SECTIONS
+{
+    . = 0x1000; /* Start address */
+    .text : { *(.text) }
+    .data : { *(.data) }
+    .bss : { *(.bss) }
+}
+
+Step 2.3: Compile the Code
+
+Run the following command in the terminal to compile your code:
+
+language-bash
+
+make
+
+This will generate a kernel.bin file that you can boot using QEMU.
+3. Running the Code in QEMU
+
+To run your compiled code in QEMU, use the following command:
+
+language-bash
+
+qemu-system-i386 -kernel kernel.bin -nographic
+
+The -nographic option allows you to run QEMU without a graphical interface, which is useful for kernel development.
+4. Debugging with GDB
+
+To visualize the output and debug your code, you can use GDB. Start QEMU with the following command to enable GDB debugging:
+
+language-bash
+
+qemu-system-i386 -kernel kernel.bin -s -S
+
+This command starts QEMU and waits for a GDB connection. You can then open another terminal and run:
+
+language-bash
+
+gdb kernel.bin
+
+In GDB, connect to the QEMU instance:
+
+language-gdb
+
+target remote localhost:1234
+
+Set breakpoints and run your code as needed. For example, to slow down the scrolling, you can use the following GDB commands:
+
+language-gdb
+
+break print_string
+run
+
+Then, in the GDB console, you can execute:
+
+language-gdb
+
+while (1)
+shell sleep 0.2
+continue
+end
+
+5. Conclusion
+
+Running low-level C code that manipulates video memory directly on a Linux OS requires a careful setup of the environment, including the use of an emulator like QEMU. By compiling the code into a bootable image and using GDB for debugging, you can effectively visualize and test the functionality of your display code. This approach not only allows you to run the code but also provides a platform for further development and experimentation with kernel-level programming."
+
+
+if i get stuck refer : "https://github.com/FRosner/FrOS"
+
+
+'''
+Example of a Simple Display Function
+
+Here’s a simple example of how your display.c and display.h might look:
+
+display.h
+
+language-c
+
+#ifndef DISPLAY_H
+#define DISPLAY_H
+
+void displayMessage(const char *message);
+
+#endif // DISPLAY_H
+
+display.c
+
+language-c
+
+#include "display.h"
+#include <stdio.h>
+
+void displayMessage(const char *message) {
+    printf("%s\n", message);
+}
+
+
+'''
+
+
+'''
+KEYBOARD DRIVER : "https://f.osdev.org/viewtopic.php?t=16051" ==> BEST PLACE FOR OS DEV 
+"https://dev.to/frosnerd/writing-my-own-keyboard-driver-16kh" 
+"https://media.dev.to/dynamic/image/width=800%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fi%2F3wpdqrqks46fjl3iwlw4.png"  ==> BEST IMAGE FOR UNDERSTANDING DATA STRUCTURES REQUIRED 
+
+"https://aeb.win.tue.nl/linux/kbd/scancodes-1.html" ==> READING THE SCAN CODES FOR LINUX == BEST OPEN SOURCE REFERENCE 
+
+HOW TO EXTRACT REQUIRED LOWER AND HIGHER BITS FROM A NUMBER : 
+"https://stackoverflow.com/questions/78060740/extracting-high-low-16-bit-words-from-a-32-bit-number"
+REFER : "https://calculator.name/baseconvert/hexadecimal/decimal/1FFFF" ==> TO CONVERT 
+
+use of asm keyword in cpp : "https://www.geeksforgeeks.org/c-asm-declaration/"
+
+#include<bits/stdc++.h> 
+using namespace std; 
+int main() 
+{ 
+  // generates interrupt 5 
+  asm int 5;   
+  
+  return 0; 
+}  
+
+
+use of volatile keyword is : "https://www.geeksforgeeks.org/how-to-use-volatile-keyword-in-cpp/" : 
+// C++ Program to Show how to use the Volatile Keyword
+#include <iostream>
+#include <mutex>
+#include <thread>
+using namespace std;
+
+// Mutex for synchronization
+mutex mtx;
+
+// Volatile variable to be accessed by multiple threads
+volatile int volVar = 0;
+
+// Function to increment the volatile variable
+void incValue()
+{
+    for (int i = 0; i < 10; i++) {
+        mtx.lock(); // Lock the mutex before accessing
+                    // volVar
+        volVar++;
+        mtx.unlock(); // Unlock the mutex after modifying
+                      // volVar
+    }
+}
+
+int main()
+{
+    // Create two threads to increment volVar
+    thread t1(incValue);
+    thread t2(incValue);
+
+    // Wait for both threads to finish
+    t1.join();
+    t2.join();
+
+    // Output the final value of volVar
+    cout << "Final value of volVar: " << volVar << endl;
+
+    return 0;
+}
+
+also refer : "https://stackoverflow.com/questions/15283223/volatile-function"
+
+
+Very Detailed Answer: Understanding the Interrupt Descriptor Table (IDT) in C++
+Question Summary
+
+This document aims to provide a comprehensive explanation of the provided C++ code related to the Interrupt Descriptor Table (IDT). It will cover the significance of the asm and volatile keywords, the rationale behind having 256 entries, the constant address 0x08, and whether alternative addresses can be used. Additionally, diagrams will be included to enhance understanding.
+Answer
+Overview of the Code
+
+The provided code snippet is part of an operating system kernel, specifically dealing with the setup of the Interrupt Descriptor Table (IDT). The IDT is a crucial data structure used by the CPU to determine the correct response to hardware and software interrupts.
+Key Components of the Code
+
+    Macros for Address Manipulation:
+
+    language-cpp
+
+#define low_16(address) (uint16_t)((address) & 0xFFFF)
+#define high_16(address) (uint16_t)(((address) >> 16) & 0xFFFF)
+
+These macros extract the lower and upper 16 bits of a 32-bit address. This is essential because the IDT entries are structured to store addresses in two parts: the lower 16 bits and the higher 16 bits.
+
+IDT Entry Structure:
+
+language-cpp
+
+typedef struct {
+    uint16_t low_offset; 
+    uint16_t sel; 
+    uint8_t always0;
+    uint8_t flags;
+    uint16_t high_offset; 
+} __attribute__((packed)) idt_gate_t;
+
+The idt_gate_t structure defines how each entry in the IDT is organized. It includes:
+
+    low_offset: Lower 16 bits of the interrupt handler's address.
+    sel: Segment selector, which indicates the segment in which the handler resides.
+    always0: This is a reserved field that must be zero.
+    flags: Contains information about the gate type and privilege level.
+    high_offset: Upper 16 bits of the interrupt handler's address.
+
+Setting an IDT Gate:
+
+language-cpp
+
+    void set_idt_gate(int n, uint32_t handler) {
+        idt[n].low_offset = low_16(handler);
+        idt[n].selector = 0x08; // see GDT
+        idt[n].always0 = 0;
+        idt[n].flags = 0x8E;
+        idt[n].high_offset = high_16(handler);
+    }
+
+    This function initializes an entry in the IDT for a specific interrupt number n with the address of the handler function. The selector is set to 0x08, which typically corresponds to the kernel code segment in the Global Descriptor Table (GDT).
+
+Explanation of Key Terms
+
+    asm and volatile:
+        asm: This keyword is used in C/C++ to embed assembly language instructions within C/C++ code. It allows for low-level hardware manipulation, which is often necessary in kernel development.
+        volatile: This keyword tells the compiler that a variable may be changed by something outside the control of the program (like hardware). It prevents the compiler from optimizing the code in a way that assumes the variable does not change unexpectedly.
+
+    Why 256 Entries?: The IDT is designed to handle a maximum of 256 interrupts, which corresponds to the range of values that can be represented by an 8-bit number (0-255). Each entry in the IDT corresponds to a specific interrupt vector, allowing the CPU to efficiently handle a wide range of interrupts.
+
+    Constant Address 0x08: The address 0x08 is a segment selector that typically points to the kernel code segment in the GDT. This is a constant because it is defined by the operating system's memory management. While it is possible to use another address, it must correspond to a valid segment in the GDT that has the appropriate permissions and attributes.
+
+Can We Use Another Address?
+
+Yes, theoretically, you can use another address for the segment selector, but it must be valid and properly configured in the GDT. Using an incorrect address could lead to access violations or undefined behavior.
+Diagrams for Better Understanding
+
+IDT Structure
++-------------------+
+| IDT Entry 0      |
++-------------------+
+| IDT Entry 1      |
++-------------------+
+| ...               |
++-------------------+
+| IDT Entry 255    |
++-------------------+
+
+IDT Entry Structure
++-------------------+
+| low_offset (16b)  |
++-------------------+
+| selector (16b)    |  --> 0x08 (Kernel Code Segment)
++-------------------+
+| always0 (8b)      |  --> 0
++-------------------+
+| flags (8b)        |  --> 0x8E
++-------------------+
+| high_offset (16b)  |
++-------------------+
+
+Conclusion
+
+In summary, the provided code is a fundamental part of setting up the IDT in an operating system kernel. Understanding the structure and purpose of each component is crucial for effective kernel development. The use of asm and volatile keywords, the rationale behind 256 entries, and the significance of the address 0x08 are all integral to the functioning of the IDT. By grasping these concepts, one can appreciate the complexity and precision required in low-level programming.
+
+
+setting up the things : ISR :
+An interrupt handler is also referred to as a interrupt service routines (ISR). The first 32 ISRs are reserved for CPU specific interrupts, such as exceptions and faults. Setting these up is crucial as they are the only way for us to know if we are doing something wrong when remapping the PIC and defining the IRQs later. You can find a full list either in the source code or on 
+
+ "https://en.wikipedia.org/wiki/Interrupt_descriptor_table"
+ 
+ interupt.asm : logic : "Unfortunately there is no way to know which gate was used to invoke the handler so we need one handler for each gate. We have to define the labels as global so that we can reference them from our C code later." ==> global isr32
+ 
+IRQ vs ISR : 
+"
+Explanation of the ISR and IRQ Handlers
+
+    Saving CPU State: The first step in both the ISR and IRQ handlers is to save the current state of the CPU registers. This is crucial because when an interrupt occurs, the current execution context must be preserved so that it can be restored after the interrupt has been handled.
+
+    Setting Up the Data Segment: The code sets the data segment to a kernel segment descriptor (0x10). This is important for ensuring that the handler operates in the correct memory context, especially in protected mode.
+
+    Calling the Handler: The handlers call a C function (isr_handler or irq_handler) to process the interrupt. This separation of assembly and C code allows for more complex logic to be implemented in a higher-level language.
+
+    Restoring State: After the handler has executed, the original state of the CPU is restored, ensuring that the system can continue executing as if the interrupt had never occurred.
+
+Significance of Values 0-32 and 1-33
+
+In the context of the IRQ handlers, the values pushed onto the stack (0 and 32 for irq0) serve specific purposes:
+
+    Push Byte 0: This is a placeholder for the error code. Some interrupts do not provide an error code, so a dummy value (0) is pushed to maintain a consistent stack structure.
+
+    Push Byte 32: This value represents the IRQ number. In the x86 architecture, IRQs are typically numbered starting from 32 for hardware interrupts. This allows the handler to identify which interrupt was triggered.
+
+Example of Usage
+
+Consider a scenario where a hardware timer generates an interrupt. The CPU will stop executing the current task and jump to the corresponding IRQ handler (e.g., irq0). The handler will save the current state, call the appropriate C function to handle the timer event, and then restore the state before returning control to the original task.
+Conclusion
+
+Understanding the intricacies of ISR and IRQ handling is fundamental for low-level programming, particularly in operating systems. The provided assembly code illustrates how to manage CPU state, call handlers, and maintain a consistent stack structure, ensuring that the system can respond to hardware events efficiently. By using placeholders and specific values, the code achieves a balance between flexibility and reliability in handling various types of interrupts.
+
+
+8259_PIC architecture : "https://wiki.osdev.org/8259_PIC"
+
+
+void isr_install() {
+    set_idt_gate(0, (uint32_t) isr0);
+    set_idt_gate(1, (uint32_t) isr1);
+    // ...
+    set_idt_gate(31, (uint32_t) isr31);
+}
+
+
+why for loop cannot be used for isr-routines :  set_idt_gate()  :: 
+
+Why a Loop Cannot Be Used
+
+    "Function Pointers and Addressing ": In C++, function names can decay to pointers, but this decay does not allow for dynamic referencing of function names in a loop. For instance, if you attempt to use an array of function pointers, you would need to define the array explicitly with the addresses of each ISR. A loop cannot dynamically generate these addresses because the function names are not stored in a way that allows for iteration.
+
+
+EXTRA READING : "https://wiki.osdev.org/APIC" ==> ADVANED NOT APPLICABLE FOR THIS POST 
+
+WHY REMAPPING OF PIC : 
+'The BIOS programs the PIC with reasonable default values for the 16 bit real mode, where the first 8 IRQs are mapped to the first 8 gates in the IDT. In protected mode however, these conflict with the first 32 gates that are reserved for CPU internal interrupts. Thus, we need to reprogram (remap) the PIC to avoid conflicts' && "http://www.thesatya.com/8259.html"
+" 
+
+
+keyboard-interrupts handling : "Note that scan codes are keyboard specific. The ones above are valid for IBM PC compatible PS/2 keyboards, for example. USB keyboards use different scan codes. Next, we have to implement and register an interrupt handler function for key presses. The PIC saves the scan code in port 0x60 after IRQ 1 is sent. So let's implement keyboard_callback and register it at IRQ 1, which is mapped to interrupt number 33."
+
+
+'''
+
+'''
+CODING MY OWN MEMORY ALLOCATOR IN C FOR MY KERNEL : 
+
+ALGO : 
+graph TD;
+    A[Start] --> B[Find Best Memory Block]
+    B --> C{Block Found?}
+    C -- Yes --> D[Adjust Block Size]
+    D --> E[Create New Memory Node]
+    E --> F[Update Linked List]
+    F --> G[Return Pointer to Allocated Memory]
+    C -- No --> H[Return NULL]
+    H --> I[End]
+    G --> I
+
+
+STRUCTURE : 
++-------------------+
+| Dynamic Memory    |
+| Area              |
+|                   |
+| +-----------------+  +-----------------+
+| | Node 1         |  | Node 2         |
+| | Size: 512     |  | Size: 1024     |
+| | Used: No      |  | Used: Yes       |
+| +-----------------+  +-----------------+
+|                   |
+| +-----------------+
+| | Node 3         |
+| | Size: 2048    |
+| | Used: No      |
+| +-----------------+
++-------------------+
+
+
++---------------------+
+| Start               |
++---------------------+
+          |
+          v
++---------------------+
+| Initialize          |
+| best_mem_block =    |
+| NULL                |
++---------------------+
+          |
+          v
++---------------------+
+| Traverse linked     |
+| list of memory      |
+| blocks              |
++---------------------+
+          |
+          v
++---------------------+
+| Check if block is   |
+| unused and size is  |
+| sufficient           |
++---------------------+
+          |
+          v
++---------------------+
+| Update best_mem_block|
+| if conditions met    |
++---------------------+
+          |
+          v
++---------------------+
+| Move to next block  |
++---------------------+
+          |
+          v
++---------------------+
+| End of list?        |
++---------------------+
+          |
+          v
++---------------------+
+| Return best_mem_block|
++---------------------+
+
+
+'''
+
+
+build.yml; file : 
+Very Detailed Answer: Explanation of build.yml Code
+Question Summary
+
+The provided build.yml file is a configuration for a GitHub Actions workflow that automates the process of building a project. This workflow is triggered on every push to the repository and runs on an Ubuntu environment. The steps include checking out the code, installing necessary tools, and executing a Makefile command to build an OS image.
+Answer
+
+The build.yml file is structured to define a GitHub Actions workflow, which is a powerful feature that allows developers to automate tasks directly from their GitHub repositories. Let's break down the components of this YAML file in detail.
+Workflow Definition
+
+language-yaml
+
+name: Build
+on: [push]
+
+    name: This specifies the name of the workflow. In this case, it is named "Build".
+    on: This indicates the events that will trigger the workflow. Here, it is set to trigger on a push event, meaning that every time code is pushed to the repository, this workflow will be executed.
+
+Jobs Section
+
+language-yaml
+
+jobs:
+  linux:
+    name: Build
+    runs-on: ubuntu-latest
+
+    jobs: This section defines a collection of jobs that will be executed as part of the workflow. Each job runs in a fresh instance of a virtual environment.
+    linux: This is the identifier for the job. It can be any name, but it is common to use descriptive names.
+    name: This is the display name of the job, which is also "Build" in this case.
+    runs-on: This specifies the type of virtual machine to use. ubuntu-latest indicates that the job will run on the latest version of Ubuntu available in GitHub Actions.
+
+Steps Section
+
+The steps section outlines the individual tasks that will be executed within the job.
+Step 1: Checkout
+
+language-yaml
+
+- name: Checkout
+  uses: actions/checkout@v3
+
+    name: This is a descriptive name for the step, indicating that it checks out the repository code.
+    uses: This specifies an action to be used. actions/checkout@v3 is a pre-defined action that checks out the repository's code so that subsequent steps can access it.
+
+Step 2: Install Tools
+
+language-yaml
+
+- name: Install tools
+  run: sudo apt-get -y install -y gcc make nasm
+
+    name: This step is named "Install tools", indicating its purpose.
+    run: This command is executed in the shell. The command sudo apt-get -y install -y gcc make nasm performs the following:
+        sudo: Runs the command with superuser privileges.
+        apt-get: This is the package management command for Ubuntu.
+        -y: Automatically confirms prompts, allowing the installation to proceed without manual intervention.
+        install: This command installs the specified packages.
+        gcc: The GNU Compiler Collection, which is essential for compiling C and C++ programs.
+        make: A build automation tool that reads a Makefile to determine how to compile and link a program.
+        nasm: The Netwide Assembler, which is used for assembling programs written in assembly language.
+
+Step 3: Build
+
+language-yaml
+
+- name: Build
+  run: make os-image.bin
+
+    name: This step is labeled "Build", indicating that it is responsible for the build process.
+    run: The command make os-image.bin is executed. This command invokes the make utility, which reads the Makefile in the repository to execute the instructions defined therein. The target os-image.bin specifies that the output of the build process will be a binary file named os-image.bin, which is likely an image file for an operating system.
+
+
